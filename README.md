@@ -46,4 +46,4 @@
 
 ### High Level Diagram
 
-![CloudNetworkingProject](https://user-images.githubusercontent.com/71105442/133380009-7647998f-9a88-47df-9617-745162d5a046.jpeg)
+![CloudNetworkingProject](https://user-images.githubusercontent.com/71105442/133917494-26cad512-7f79-4556-a8fb-9d5306379c66.jpeg)
