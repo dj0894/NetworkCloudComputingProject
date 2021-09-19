@@ -1,0 +1,36 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "codedeploy:RegisterApplicationRevision",
+                "codedeploy:GetApplicationRevision"
+            ],
+            "Resource": [
+                "arn:aws:codedeploy:us-east-1:213025312787:application:csye6225-webapp"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "codedeploy:CreateDeployment",
+                "codedeploy:GetDeployment"
+            ],
+            "Resource": [
+                "arn:aws:codedeploy:us-east-1:213025312787:deploymentgroup:csye6225-webapp/csye6225-webapp-deployment"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "codedeploy:GetDeploymentConfig"
+            ],
+            "Resource": [
+                "arn:aws:codedeploy:us-east-1:213025312787:deploymentconfig:CodeDeployDefault.OneAtATime",
+                "arn:aws:codedeploy:us-east-1:213025312787:deploymentconfig:CodeDeployDefault.HalfAtATime",
+                "arn:aws:codedeploy:us-east-1:213025312787:deploymentconfig:CodeDeployDefault.AllAtOnce"
+            ]
+        }
+    ]
+}
