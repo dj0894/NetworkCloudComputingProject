@@ -1,0 +1,70 @@
+name: Deploy Lamda
+
+env: 
+  DEPLOY_FUNCTION_NAME: EmailSenderLambda 
+  AWS_REGION: us-east-1
+  CODEDEPLOY_APPLICATION_NAME: csye6225-serverless
+  CODEDEPLOY_APPLICATION_DEPLOYMENT_GROUP_NAME: csye6225-serverless-deployment 
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    name: deploy
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [14.x]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v1
+      with:
+        node-version: ${{ matrix.node-version }}
+
+    - name: Build Binary
+      run: |
+        zip -r bundle.zip handler.js
+    # Configure AWS credentials
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1    
+    - name: Update Function Code
+      run: |
+        aws lambda get-alias --function-name ${{ env.DEPLOY_FUNCTION_NAME }} --name development > output.json 
+        DEVELOPMENT_ALIAS_VERSION=$(cat output.json | jq -r '.FunctionVersion')
+        echo $DEVELOPMENT_ALIAS_VERSION
+        aws lambda update-function-code --function-name ${{ env.DEPLOY_FUNCTION_NAME }} --zip-file fileb://bundle.zip --publish  > output.json
+        LATEST_VERSION=$(cat output.json | jq -r '.Version')
+        echo $LATEST_VERSION
+        cat > "appspec.yml" <<- EOM
+        version: 0.0
+        Resources:
+          - myLambdaFunction:
+              Type: AWS::Lambda::Function
+              Properties:
+                Name: "$DEPLOY_FUNCTION_NAME"
+                Alias: "development"
+                CurrentVersion: $DEVELOPMENT_ALIAS_VERSION
+                TargetVersion: $LATEST_VERSION
+        EOM
+        cat appspec.yml        
+    - name: Upload to S3
+      run: |
+        aws s3 cp appspec.yml s3://${{ secrets.S3_CODEDEPLOY_BUCKET }}         
+    - name: default deploy
+      run: |
+        REVISION=revisionType=S3,s3Location={bucket=${{ secrets.S3_CODEDEPLOY_BUCKET }},key=appspec.yml,bundleType=YAML}
+        output=$(aws deploy create-deployment \
+              --application-name ${{ env.CODEDEPLOY_APPLICATION_NAME }} \
+              --deployment-group-name ${{ env.CODEDEPLOY_APPLICATION_DEPLOYMENT_GROUP_NAME}} \
+              --deployment-config-name CodeDeployDefault.LambdaAllAtOnce \
+              --revision $REVISION)
+        echo $output
+        deployment_id=$(echo $output | jq -r '.deploymentId')
+        aws deploy wait deployment-successful --deployment-id $deployment_id
